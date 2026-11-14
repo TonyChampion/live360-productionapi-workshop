@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticketing Lab Client</title>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #171e2e; --line: #26304a; --text: #e6e9f0; --muted: #8b95ad;
+    --accent: #f5c518; --ok: #3ecf8e; --warn: #f5a623; --bad: #ef5b5b; --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: .3px; }
+  header h1 span { color: var(--accent); }
+  .who { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .who select { background: #222b40; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font: inherit; }
+  .strip { margin-left: auto; display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 13px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 3px rgba(255,255,255,.05); }
+  .docs { color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; }
+  .docs:hover { border-color: var(--accent); }
+  .dot.Healthy { background: var(--ok); } .dot.Degraded { background: var(--warn); } .dot.Unhealthy { background: var(--bad); }
+  main { display: grid; grid-template-columns: 300px 1fr; gap: 18px; padding: 18px 20px; max-width: 1280px; margin: 0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0 0 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  label b { color: var(--text); font-family: var(--mono); font-weight: 500; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  button { background: #222b40; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; font: inherit; font-size: 13px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 600; }
+  .stack { display: grid; gap: 18px; align-content: start; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+  .pill { font-family: var(--mono); font-size: 12px; padding: 2px 7px; border-radius: 999px; background: #222b40; }
+  #log { font-family: var(--mono); font-size: 12.5px; max-height: 320px; overflow: auto; margin: 0; white-space: pre-wrap; }
+  #log .s2 { color: var(--ok); } #log .s4 { color: var(--warn); } #log .s5, #log .err { color: var(--bad); }
+  .muted { color: var(--muted); font-size: 13px; }
+  #runcases button { width: 100%; text-align: left; margin-bottom: 6px; }
+  .trace { border-bottom: 1px solid var(--line); padding: 8px 0; font-family: var(--mono); font-size: 12.5px; }
+  .trace summary { cursor: pointer; }
+  .trace .bar-row { display: grid; grid-template-columns: 260px 1fr 70px; gap: 8px; align-items: center; margin: 3px 0; }
+  .trace .bar-track { position: relative; height: 10px; background: #1d2538; border-radius: 3px; }
+  .trace .bar { position: absolute; top: 0; height: 10px; border-radius: 3px; background: var(--accent); min-width: 2px; }
+  .trace .bar.app { background: #6ea8fe; } .trace .bar.err { background: var(--bad); }
+  .trace .meta { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ticketing <span>Lab Client</span></h1>
+  <div class="who">
+    Signed in as
+    <select id="who">
+      <option value="">nobody</option>
+      <option value="requester">requester (alice)</option>
+      <option value="agent">agent (dana)</option>
+      <option value="admin">admin</option>
+    </select>
+    <button id="setToken">Set token</button>
+  </div>
+  <div class="strip"><a id="docsLink" class="docs" href="/swagger/index.html" target="_blank" rel="noopener" hidden>API docs</a><span class="dot" id="healthDot"></span><span id="healthText">checking...</span></div>
+</header>
+
+<main>
+  <div class="stack">
+    <section>
+      <h2>Chaos panel</h2>
+      <p class="muted">Makes the ticket store misbehave. Used from Lab 5 on.</p>
+      <label>Latency <b id="latVal">0 ms</b></label>
+      <input id="lat" type="range" min="0" max="3000" step="50" value="0">
+      <label>Error rate <b id="errVal">0%</b></label>
+      <input id="err" type="range" min="0" max="100" step="5" value="0">
+      <label><input id="avail" type="checkbox" checked> Store available</label>
+      <div class="row">
+        <button class="primary" id="applyChaos">Apply</button>
+        <button id="resetChaos">Reset</button>
+      </div>
+      <div class="row">
+        <button data-preset="slow">Slow (800 ms)</button>
+        <button data-preset="flaky">Flaky (30%)</button>
+        <button data-preset="down">Down</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Run cases</h2>
+      <div id="runcases">
+        <button data-case="smoke">Smoke test: list tickets</button>
+        <button data-case="ratelimit">Trip the rate limiter (Lab 4)</button>
+        <button data-case="cache">Cache miss vs hit (Lab 5)</button>
+        <button data-case="outage">Store outage: watch health (Lab 6)</button>
+      </div>
+      <p class="muted">More run cases unlock as the labs build the features they show.</p>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section>
+      <h2>Tickets</h2>
+      <div class="row" style="margin-top:0;margin-bottom:10px">
+        <button id="refresh">Refresh</button>
+      </div>
+      <table>
+        <thead><tr><th>Title</th><th>Status</th><th>Priority</th><th>Requester</th></tr></thead>
+        <tbody id="tickets"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Recent traces</h2>
+      <div class="row" style="margin-top:0;margin-bottom:10px">
+        <button id="refreshTraces">Refresh</button>
+        <button id="clearTraces">Clear</button>
+        <span class="muted">Spans from your own code appear once Lab 6 adds them.</span>
+      </div>
+      <div id="traces" class="muted">No API requests traced yet.</div>
+    </section>
+
+    <section>
+      <h2>Request log</h2>
+      <div class="row" style="margin-top:0;margin-bottom:10px">
+        <button id="clearLog">Clear</button>
+      </div>
+      <pre id="log"></pre>
+    </section>
+  </div>
+</main>
+
+<script>
+  // Configuration. The API version path is the one value that may change during the day.
+  const config = { api: "/api/v1", health: "/health", chaos: "/dev/chaos" };
+  const $ = (id) => document.getElementById(id);
+
+  // Tokens come from dotnet user-jwts (Lab 3). Stored in this browser only.
+  const tokens = (() => { try { return JSON.parse(localStorage.getItem("tokens") ?? "{}"); } catch { return {}; } })();
+  const saveTokens = () => { try { localStorage.setItem("tokens", JSON.stringify(tokens)); } catch {} };
+  const currentToken = () => tokens[$("who").value];
+
+  function log(method, url, status, ms, note) {
+    const line = document.createElement("div");
+    line.className = status ? "s" + String(status)[0] : "err";
+    line.textContent = `${new Date().toLocaleTimeString()}  ${method.padEnd(4)} ${url}  ${status ?? "ERR"}  ${ms} ms${note ? "  " + note : ""}`;
+    $("log").prepend(line);
+  }
+
+  async function call(method, url, body) {
+    const started = performance.now();
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          ...(body ? { "Content-Type": "application/json" } : {}),
+          ...(currentToken() ? { "Authorization": `Bearer ${currentToken()}` } : {})
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const ms = Math.round(performance.now() - started);
+      const text = await res.text();
+      let data = text;
+      try { data = JSON.parse(text); } catch {}
+      log(method, url, res.status, ms);
+      return { status: res.status, data, headers: res.headers, ms };
+    } catch (e) {
+      log(method, url, null, Math.round(performance.now() - started), e.message);
+      return { status: 0, data: null };
+    }
+  }
+
+  // Health strip: handles the plain-text default now and the JSON writer from Module 7.
+  async function pollHealth() {
+    try {
+      const res = await fetch(config.health);
+      const text = await res.text();
+      let status = text.trim();
+      try { status = JSON.parse(text).status ?? status; } catch {}
+      $("healthDot").className = "dot " + status;
+      $("healthText").textContent = `${status} (${res.status})`;
+    } catch {
+      $("healthDot").className = "dot Unhealthy";
+      $("healthText").textContent = "API not reachable";
+    }
+  }
+
+  async function loadTickets() {
+    const r = await call("GET", `${config.api}/tickets`);
+    const items = Array.isArray(r.data) ? r.data : (r.data?.items ?? []);
+    $("tickets").innerHTML = items.length
+      ? items.map(t => `<tr><td>${esc(t.title)}</td><td><span class="pill">${esc(t.status)}</span></td><td>${esc(t.priority)}</td><td>${esc(t.requesterId)}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="muted">No tickets (status ${r.status})</td></tr>`;
+  }
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function showChaos(s) {
+    $("lat").value = s.latencyMs; $("latVal").textContent = s.latencyMs + " ms";
+    $("err").value = Math.round(s.errorRate * 100); $("errVal").textContent = Math.round(s.errorRate * 100) + "%";
+    $("avail").checked = s.available;
+  }
+
+  async function applyChaos(state) {
+    const r = await call("PUT", config.chaos, state);
+    if (r.data) showChaos(r.data);
+    pollHealth();
+  }
+
+  $("lat").oninput = () => $("latVal").textContent = $("lat").value + " ms";
+  $("err").oninput = () => $("errVal").textContent = $("err").value + "%";
+  $("applyChaos").onclick = () => applyChaos({ latencyMs: +$("lat").value, errorRate: $("err").value / 100, available: $("avail").checked });
+  $("resetChaos").onclick = async () => { const r = await call("POST", `${config.chaos}/reset`); if (r.data) showChaos(r.data); pollHealth(); };
+  document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => applyChaos({
+    slow:  { latencyMs: 800, errorRate: 0,   available: true },
+    flaky: { latencyMs: 0,   errorRate: 0.3, available: true },
+    down:  { latencyMs: 0,   errorRate: 0,   available: false }
+  }[b.dataset.preset]));
+  $("refresh").onclick = loadTickets;
+  $("clearLog").onclick = () => { $("log").textContent = ""; };
+  $("who").onchange = () => {
+    try { localStorage.setItem("who", $("who").value); } catch {}
+    if ($("who").value && !currentToken()) $("setToken").click(); else loadTickets();
+  };
+  $("setToken").onclick = () => {
+    const role = $("who").value;
+    if (!role) { alert("Pick who to sign in as first."); return; }
+    const token = prompt(`Paste a token for ${role}.\nNeed one? In the lab folder, run make-tokens.ps1 (Windows) or make-tokens.sh (macOS/Linux),\nthen copy ${({ requester: "alice", agent: "dana", admin: "admin" })[role]}'s token from tokens.md.`, tokens[role] ?? "");
+    if (token !== null) { tokens[role] = token.trim(); saveTokens(); loadTickets(); }
+  };
+  try { $("who").value = localStorage.getItem("who") ?? ""; } catch {}
+
+  // The signed-in user's name, read from the token (a JWT payload is just base64url JSON)
+  function currentUser() {
+    try {
+      const payload = currentToken().split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const claims = JSON.parse(atob(payload));
+      return claims.unique_name ?? claims.sub;
+    } catch { return null; }
+  }
+
+  async function tripRateLimiter() {
+    const user = currentUser();
+    if (!user) { alert("Sign in first (Lab 3), so the limiter knows whose quota to count."); return; }
+    const counts = {};
+    for (let i = 1; i <= 25; i++) {
+      const r = await call("POST", `${config.api}/tickets`,
+        { title: `Burst ${i}`, description: "Rate limit run case.", priority: "Low", requesterId: user });
+      counts[r.status] = (counts[r.status] ?? 0) + 1;
+      if (r.status === 429) {
+        log("RATE", "limit reached", 429, 0, `after ${i - 1} creates; Retry-After: ${r.headers.get("Retry-After") ?? "?"}s`);
+        break;
+      }
+    }
+    log("RATE", "summary", null, 0, JSON.stringify(counts));
+    loadTickets();
+  }
+
+  // With 800 ms of store latency: create a ticket, then read it twice.
+  // The first read misses the cache and waits on the store; the second doesn't.
+  async function cacheMissVsHit() {
+    const user = currentUser();
+    if (!user) { alert("Sign in first (Lab 3)."); return; }
+    await applyChaos({ latencyMs: 800, errorRate: 0, available: true });
+    try {
+      const created = await call("POST", `${config.api}/tickets`,
+        { title: "Cache demo", description: "Miss, then hit.", priority: "Low", requesterId: user });
+      if (created.status !== 201) return;
+      const url = `${config.api}/tickets/${created.data.id}`;
+      const miss = await call("GET", url);
+      const hit = await call("GET", url);
+      log("CACHE", "result", null, 0, `miss ${miss.ms} ms, hit ${hit.ms} ms`);
+    } finally {
+      await applyChaos({ latencyMs: 0, errorRate: 0, available: true });
+    }
+  }
+
+  // Clear hides traces that started before this moment (the API keeps its own buffer)
+  let tracesClearedAt = 0;
+  async function loadTraces() {
+    try {
+      const traces = (await (await fetch("/dev/traces")).json()).filter(t => new Date(t.startUtc) > tracesClearedAt);
+      if (!traces.length) { $("traces").textContent = tracesClearedAt ? "Cleared. New requests show up here." : "No API requests traced yet."; return; }
+      $("traces").innerHTML = traces.map(t => {
+        // Background work can outlive the request that started it: scale to whichever ends last
+        const total = Math.max(t.durationMs, ...t.spans.map(s => s.offsetMs + s.durationMs), 0.1);
+        const rows = t.spans.map(s => {
+          const left = Math.min(100, (s.offsetMs / total) * 100), width = Math.max(0.5, (s.durationMs / total) * 100);
+          const cls = s.status === "Error" ? "err" : (s.source === "Ticketing.Api" ? "app" : "");
+          const tags = Object.entries(s.tags ?? {}).filter(([k]) => /^(ticket|cache|http\.response|db|error)/.test(k)).map(([k, v]) => `${k}=${v}`);
+          const extra = [...tags, ...(s.events ?? [])].join(" ");
+          return `<div class="bar-row"><span>${esc(s.name)}</span><span class="bar-track"><span class="bar ${cls}" style="left:${left}%;width:${width}%"></span></span><span>${s.durationMs} ms</span></div>` +
+                 (extra ? `<div class="meta" style="margin-left:8px">${esc(extra)}</div>` : "");
+        }).join("");
+        return `<details class="trace"><summary>${esc(t.name)} <span class="meta">${t.durationMs} ms &middot; trace ${t.traceId.slice(0, 8)}</span></summary>${rows}</details>`;
+      }).join("");
+    } catch { $("traces").textContent = "Trace panel unavailable."; }
+  }
+
+  // Take the store down for 10 seconds; the health strip goes red, then recovers
+  async function storeOutage() {
+    await applyChaos({ latencyMs: 0, errorRate: 0, available: false });
+    log("CHAOS", "store down for 10 s", null, 0, "watch the health strip");
+    setTimeout(async () => { await applyChaos({ latencyMs: 0, errorRate: 0, available: true }); log("CHAOS", "store restored", null, 0); }, 10000);
+  }
+
+  $("refreshTraces").onclick = loadTraces;
+  $("clearTraces").onclick = () => { tracesClearedAt = Date.now(); loadTraces(); };
+  const runCases = { smoke: loadTickets, ratelimit: tripRateLimiter, cache: cacheMissVsHit, outage: storeOutage };
+  document.querySelectorAll("[data-case]").forEach(b => b.onclick = () => runCases[b.dataset.case]?.());
+
+  (async () => {
+    const r = await call("GET", config.chaos);
+    if (r.data) showChaos(r.data);
+    pollHealth();
+    setInterval(pollHealth, 3000);
+    // The API docs link appears once the API serves Swagger UI (Lab 1 on, Development only)
+    fetch("/swagger/index.html", { method: "HEAD" }).then(r => { if (r.ok) $("docsLink").hidden = false; }).catch(() => {});
+    setInterval(loadTraces, 4000);
+    loadTickets();
+  })();
+</script>
+</body>
+</html>

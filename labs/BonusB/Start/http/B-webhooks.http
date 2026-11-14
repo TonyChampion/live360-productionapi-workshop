@@ -1,0 +1,64 @@
+# Bonus B: Webhooks
+# Run the API and the receiver (src/Ticketing.WebhookReceiver, http://localhost:5005).
+@host = https://localhost:7001
+@receiver = http://localhost:5005
+@dana = paste-dana-token-here
+@alice = paste-alice-token-here
+@subscriptionId = paste-the-id-from-the-201
+@ticketId = paste-a-ticket-id
+
+### Subscribe the receiver: 201, with the signing secret. Copy it: you won't see it again.
+POST {{host}}/api/v1/webhooks
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+
+{ "url": "{{receiver}}/webhooks", "events": ["ticket.closed"] }
+
+### Now restart the receiver with that secret:
+###   dotnet run --project src/Ticketing.WebhookReceiver -- --Webhook:Secret whsec_...
+
+### List subscriptions: no secrets in here
+GET {{host}}/api/v1/webhooks
+Authorization: Bearer {{dana}}
+
+### Requesters can't subscribe: 403
+POST {{host}}/api/v1/webhooks
+Authorization: Bearer {{alice}}
+Content-Type: application/json
+
+{ "url": "{{receiver}}/webhooks", "events": ["ticket.closed"] }
+
+### Not a URL, or an event that doesn't exist: 400
+POST {{host}}/api/v1/webhooks
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+
+{ "url": "ftp://example.com/hooks", "events": ["ticket.exploded"] }
+
+### Create a ticket to close
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+
+{ "title": "Webhook demo", "description": "Close me.", "priority": "Low", "requesterId": "carol" }
+
+### Close it: the response comes right back; watch the receiver's console
+POST {{host}}/api/v1/tickets/{{ticketId}}/close
+Authorization: Bearer {{dana}}
+
+### What the receiver got
+GET {{receiver}}/
+
+### What the API recorded
+GET {{host}}/api/v1/webhooks/{{subscriptionId}}/deliveries
+Authorization: Bearer {{dana}}
+
+### Make the receiver fail the next 2 deliveries, then close another ticket: 2 failures, 1 success, one id
+POST {{receiver}}/fail-next/2
+
+### Make it fail more times than the API retries: the delivery is recorded as Failed
+POST {{receiver}}/fail-next/10
+
+### Unsubscribe: 204
+DELETE {{host}}/api/v1/webhooks/{{subscriptionId}}
+Authorization: Bearer {{dana}}

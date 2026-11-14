@@ -1,0 +1,51 @@
+# Lab 1: Controllers to Minimal APIs
+# Same calls before and after the migration. The responses should not change,
+# except where Lab 1 changes them on purpose (contracts, version headers).
+@host = https://localhost:7001
+@ticketId = 11111111-1111-1111-1111-111111111111
+
+### List tickets (check the api-supported-versions header after Lab 1)
+GET {{host}}/api/v1/tickets
+
+### Get one ticket (after Lab 1: commentCount instead of an embedded comments array)
+GET {{host}}/api/v1/tickets/{{ticketId}}
+
+### Create a ticket
+POST {{host}}/api/v1/tickets
+Content-Type: application/json
+
+{
+  "title": "Printer on fire",
+  "description": "Literally.",
+  "priority": "Urgent",
+  "requesterId": "bob"
+}
+
+### Overposting: try to assign and close your own ticket on create
+# Before Lab 1 the domain model binds these. After, the contract ignores them.
+POST {{host}}/api/v1/tickets
+Content-Type: application/json
+
+{
+  "title": "Please fix",
+  "description": "Sneaky fields.",
+  "priority": "Low",
+  "requesterId": "mallory",
+  "assigneeId": "mallory",
+  "status": "Closed"
+}
+
+### List comments
+GET {{host}}/api/v1/tickets/{{ticketId}}/comments
+
+### Add a comment
+POST {{host}}/api/v1/tickets/{{ticketId}}/comments
+Content-Type: application/json
+
+{ "authorId": "dana", "body": "Looking into it." }
+
+### A version that doesn't exist (404)
+GET {{host}}/api/v2/tickets
+
+### The OpenAPI document (after Lab 1)
+GET {{host}}/openapi/v1.json

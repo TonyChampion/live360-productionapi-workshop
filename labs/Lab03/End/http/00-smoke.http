@@ -1,0 +1,36 @@
+# Module 0: Smoke Test
+# Run the API first (dotnet run --project src/Ticketing.Api), then send these one at a time.
+# Use the port your API prints on startup.
+@host = https://localhost:7001
+
+### Health
+GET {{host}}/health
+
+### List tickets
+GET {{host}}/api/v1/tickets
+
+### Get the seeded ticket
+GET {{host}}/api/v1/tickets/11111111-1111-1111-1111-111111111111
+
+### Create a ticket
+POST {{host}}/api/v1/tickets
+Content-Type: application/json
+
+{
+  "title": "Printer on fire",
+  "description": "Literally.",
+  "priority": "Urgent",
+  "requesterId": "bob"
+}
+
+### Read the chaos settings
+GET {{host}}/dev/chaos
+
+### Make the store slow (800 ms)
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 800, "errorRate": 0, "available": true }
+
+### Turn chaos off
+POST {{host}}/dev/chaos/reset

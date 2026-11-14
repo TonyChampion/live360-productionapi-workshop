@@ -1,0 +1,28 @@
+# Lab 4: Protecting the API
+# Paste a token from dotnet user-jwts (Lab 3).
+@host = https://localhost:7001
+@ticketId = 11111111-1111-1111-1111-111111111111
+@alice = paste-alice-token-here
+
+### Create a ticket as alice. Send this 21 times in a minute: the 21st is 429.
+# (Or use "Trip the rate limiter" in the lab client.)
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{alice}}
+Content-Type: application/json
+
+{ "title": "Again", "description": "And again.", "priority": "Low", "requesterId": "alice" }
+
+### Look at the response headers: nosniff, Referrer-Policy, Content-Security-Policy
+GET {{host}}/api/v1/tickets/{{ticketId}}
+Authorization: Bearer {{alice}}
+
+### CORS preflight from the support site: allowed
+OPTIONS {{host}}/api/v1/tickets
+Origin: https://support.ticketing.example
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: authorization,content-type
+
+### CORS preflight from anywhere else: no Access-Control-Allow-Origin
+OPTIONS {{host}}/api/v1/tickets
+Origin: https://evil.example
+Access-Control-Request-Method: POST

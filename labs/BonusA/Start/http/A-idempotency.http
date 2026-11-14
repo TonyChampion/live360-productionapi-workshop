@@ -1,0 +1,55 @@
+# Bonus A: Idempotency
+# Change @key for each new experiment; reuse it to see a replay.
+@host = https://localhost:7001
+@dana = paste-dana-token-here
+@erin = paste-erin-token-here
+@key = 7f3c9a2e-first-try
+
+### Create with a key: 201
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+Idempotency-Key: {{key}}
+
+{ "title": "Printer on fire", "description": "Third floor.", "priority": "High", "requesterId": "carol" }
+
+### Exactly the same again: the same 201, plus Idempotent-Replayed: true
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+Idempotency-Key: {{key}}
+
+{ "title": "Printer on fire", "description": "Third floor.", "priority": "High", "requesterId": "carol" }
+
+### Same key, different body: 422 idempotency-key-reused
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+Idempotency-Key: {{key}}
+
+{ "title": "Coffee machine on fire", "description": "Kitchen.", "priority": "High", "requesterId": "carol" }
+
+### Same key, another user: a different ticket (keys belong to the caller)
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{erin}}
+Content-Type: application/json
+Idempotency-Key: {{key}}
+
+{ "title": "Printer on fire", "description": "Third floor.", "priority": "High", "requesterId": "carol" }
+
+### A key that's too long: 400 idempotency-key-invalid
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+Idempotency-Key: kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
+
+{ "title": "Printer on fire", "description": "Third floor.", "priority": "High", "requesterId": "carol" }
+
+### Slow the store to 3 seconds, then send the create twice, quickly: the second is a 409
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 3000, "errorRate": 0, "available": true }
+
+###
+POST {{host}}/dev/chaos/reset

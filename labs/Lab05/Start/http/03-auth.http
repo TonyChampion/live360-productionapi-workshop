@@ -1,0 +1,64 @@
+# Lab 3: Authentication and Authorization
+# Create tokens from the project folder (src/Ticketing.Api), then paste them below:
+#   dotnet user-jwts create --name alice --role requester
+#   dotnet user-jwts create --name bob --role requester
+#   dotnet user-jwts create --name dana --role agent
+@host = https://localhost:7001
+@ticketId = 11111111-1111-1111-1111-111111111111
+@alice = paste-alice-token-here
+@bob = paste-bob-token-here
+@dana = paste-dana-token-here
+# The API key comes from appsettings.Development.json (Step 6)
+@apiKey = dev-ops-dashboard-key-change-me
+
+### 401: no token
+GET {{host}}/api/v1/tickets
+
+### alice lists tickets: only hers
+GET {{host}}/api/v1/tickets
+Authorization: Bearer {{alice}}
+
+### dana (agent) lists tickets: all of them
+GET {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+
+### alice reads her own ticket: 200
+GET {{host}}/api/v1/tickets/{{ticketId}}
+Authorization: Bearer {{alice}}
+
+### bob reads alice's ticket: 403
+GET {{host}}/api/v1/tickets/{{ticketId}}
+Authorization: Bearer {{bob}}
+
+### bob creates a ticket for himself: 201
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{bob}}
+Content-Type: application/json
+
+{ "title": "My laptop", "description": "Won't boot.", "priority": "High", "requesterId": "bob" }
+
+### bob creates a ticket as alice: 403
+POST {{host}}/api/v1/tickets
+Authorization: Bearer {{bob}}
+Content-Type: application/json
+
+{ "title": "Framing alice", "description": "Hmm.", "priority": "Low", "requesterId": "alice" }
+
+### alice tries to close her own ticket: 403 (agents only)
+POST {{host}}/api/v1/tickets/{{ticketId}}/close
+Authorization: Bearer {{alice}}
+
+### dana assigns it to herself: 200
+POST {{host}}/api/v1/tickets/{{ticketId}}/assign
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+
+{ "assigneeId": "dana" }
+
+### A service caller with an API key (no bearer token)
+GET {{host}}/api/v1/tickets
+X-Api-Key: {{apiKey}}
+
+### A wrong API key: 401
+GET {{host}}/api/v1/tickets
+X-Api-Key: guessed-key

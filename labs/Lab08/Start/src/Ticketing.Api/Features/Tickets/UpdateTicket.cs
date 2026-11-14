@@ -1,0 +1,48 @@
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Ticketing.Api.Data;
+using Ticketing.Api.Infrastructure;
+
+namespace Ticketing.Api.Features.Tickets;
+
+// Only the fields a caller is changing; nulls are left alone.
+public record UpdateTicketRequest(
+    [MinLength(1), StringLength(200)] string? Title,
+    [StringLength(4000)] string? Description,
+    Domain.TicketPriority? Priority);
+
+public static class UpdateTicket
+{
+    public static RouteGroupBuilder MapUpdateTicket(this RouteGroupBuilder group)
+    {
+        group.MapPatch("/{id:guid}", Handle).WithName("UpdateTicket");
+        return group;
+    }
+
+    public static async Task<Results<Ok<TicketResponse>, ProblemHttpResult>> Handle(
+        Guid id, UpdateTicketRequest request, ITicketStore store, ClaimsPrincipal user,
+        IAuthorizationService auth, HttpContext http, CancellationToken cancellationToken)
+    {
+        var ticket = await store.GetAsync(id, cancellationToken);
+        if (ticket is null)
+            return Problems.TicketNotFound(id);
+
+        if (!(await auth.AuthorizeAsync(user, ticket, Policies.TicketAccess)).Succeeded)
+            return Problems.Forbidden($"You don't have access to ticket {ticket.Id}.");
+
+        // Optimistic concurrency: if the caller sent If-Match, their change must be based on
+        // the current version, or it would silently overwrite someone else's change
+        if (http.Request.IsBasedOnStaleVersion(ETags.For(ticket)))
+            return Problems.PreconditionFailed(id);
+
+        if (request.Title is not null) ticket.Title = request.Title;
+        if (request.Description is not null) ticket.Description = request.Description;
+        if (request.Priority is not null) ticket.Priority = request.Priority.Value;
+
+        await store.UpdateAsync(ticket, cancellationToken);
+        http.Response.SetETag(ETags.For(ticket));
+        return TypedResults.Ok(ticket.ToResponse());
+    }
+}

@@ -1,0 +1,51 @@
+# Lab 8: Background Processing
+# Create a few tickets first (as dana), and paste their ids below.
+@host = https://localhost:7001
+@dana = paste-dana-token-here
+@alice = paste-alice-token-here
+@ticket1 = 11111111-1111-1111-1111-111111111111
+@ticket2 = paste-a-ticket-id
+@jobId = paste-the-job-id-from-the-202
+
+### Close one ticket, then read its comments: a "closed by" comment from the event handler
+POST {{host}}/api/v1/tickets/{{ticket2}}/close
+Authorization: Bearer {{dana}}
+
+###
+GET {{host}}/api/v1/tickets/{{ticket2}}/comments
+Authorization: Bearer {{dana}}
+
+### Bulk close: 202 Accepted right away, with a Location for the job
+POST {{host}}/api/v1/tickets/bulk-close
+Authorization: Bearer {{dana}}
+Content-Type: application/json
+
+{ "ticketIds": [ "{{ticket1}}", "{{ticket2}}", "00000000-0000-0000-0000-000000000009" ] }
+
+### Follow the job (copy the id from the Location header)
+GET {{host}}/api/v1/jobs/{{jobId}}
+Authorization: Bearer {{dana}}
+
+### Requesters can't bulk close: 403
+POST {{host}}/api/v1/tickets/bulk-close
+Authorization: Bearer {{alice}}
+Content-Type: application/json
+
+{ "ticketIds": [ "{{ticket1}}" ] }
+
+### Take the store down, bulk close, and watch the job retry, then land in dead letters
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 0, "errorRate": 0, "available": false }
+
+### Jobs that ran out of attempts
+GET {{host}}/api/v1/jobs/dead-letters
+Authorization: Bearer {{dana}}
+
+### Back to normal
+POST {{host}}/dev/chaos/reset
+
+### Urgent and high tickets nobody has picked up (checked every 30 s)
+GET {{host}}/api/v1/escalations
+Authorization: Bearer {{dana}}

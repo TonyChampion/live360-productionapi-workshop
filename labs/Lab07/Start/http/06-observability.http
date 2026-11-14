@@ -1,0 +1,33 @@
+# Lab 6: Observability
+# Health endpoints are public: no token needed.
+@host = https://localhost:7001
+
+### Full health report (JSON after Lab 6)
+GET {{host}}/health
+
+### Liveness: is the process up? (ignores dependencies)
+GET {{host}}/health/live
+
+### Readiness: can it serve traffic? (checks the store)
+GET {{host}}/health/ready
+
+### Make the store slow: /health goes Degraded, still 200
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 700, "errorRate": 0, "available": true }
+
+### Take the store down: /health and /health/ready go 503, /health/live stays 200
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 0, "errorRate": 0, "available": false }
+
+### Back to normal
+POST {{host}}/dev/chaos/reset
+
+### Trigger an error, copy the traceId, and find it in the console log
+GET {{host}}/dev/boom
+
+### Recent traces (what the lab client's trace panel draws)
+GET {{host}}/dev/traces

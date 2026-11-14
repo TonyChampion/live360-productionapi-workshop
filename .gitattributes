@@ -1,0 +1,2 @@
+# Shell scripts keep LF line endings on every OS, so bash can run them from a Windows clone too
+*.sh text eol=lf

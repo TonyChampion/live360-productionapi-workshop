@@ -1,0 +1,50 @@
+# Lab 2: Validation and Error Contracts
+# Run these before and after the lab. Before: 201s for bad input, bare 500s, empty 404s.
+# After: every failure is application/problem+json with a type, a status, and a traceId.
+@host = https://localhost:7001
+@ticketId = 11111111-1111-1111-1111-111111111111
+
+### 400: no title, no requester (before: 201 Created)
+POST {{host}}/api/v1/tickets
+Content-Type: application/json
+
+{ "title": "", "description": "Missing fields.", "priority": "Normal", "requesterId": "" }
+
+### 400: a priority that doesn't exist
+POST {{host}}/api/v1/tickets
+Content-Type: application/json
+
+{ "title": "Bad priority", "description": "Hmm.", "priority": "Critical", "requesterId": "bob" }
+
+### 400: an urgent ticket needs a real description (FluentValidation, a rule attributes can't express)
+POST {{host}}/api/v1/tickets
+Content-Type: application/json
+
+{ "title": "Server down", "description": "Help!", "priority": "Urgent", "requesterId": "bob" }
+
+### 400: empty comment
+POST {{host}}/api/v1/tickets/{{ticketId}}/comments
+Content-Type: application/json
+
+{ "authorId": "dana", "body": "" }
+
+### 404: a ticket that doesn't exist (before: empty body)
+GET {{host}}/api/v1/tickets/00000000-0000-0000-0000-000000000001
+
+### 404: a route that doesn't exist (before: empty body)
+GET {{host}}/api/v2/tickets
+
+### Close the seeded ticket (first time: 200)
+POST {{host}}/api/v1/tickets/{{ticketId}}/close
+
+### 409: close it again (before: 500 with an exception)
+POST {{host}}/api/v1/tickets/{{ticketId}}/close
+
+### 409: assign a closed ticket
+POST {{host}}/api/v1/tickets/{{ticketId}}/assign
+Content-Type: application/json
+
+{ "assigneeId": "dana" }
+
+### 500: an unhandled exception (before: the developer exception page)
+GET {{host}}/dev/boom

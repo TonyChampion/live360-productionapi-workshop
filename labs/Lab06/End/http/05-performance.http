@@ -1,0 +1,52 @@
+# Lab 5: Performance
+@host = https://localhost:7001
+@ticketId = 11111111-1111-1111-1111-111111111111
+@dana = paste-dana-token-here
+
+### Page 1 of 4. Look at the X-Total-Count and Link headers.
+GET {{host}}/api/v1/tickets?page=1&pageSize=4
+Authorization: Bearer {{dana}}
+
+### Page 2
+GET {{host}}/api/v1/tickets?page=2&pageSize=4
+Authorization: Bearer {{dana}}
+
+### Filtered: open, high priority
+GET {{host}}/api/v1/tickets?status=Open&priority=High
+Authorization: Bearer {{dana}}
+
+### Too big a page: 400
+GET {{host}}/api/v1/tickets?pageSize=500
+Authorization: Bearer {{dana}}
+
+### Read a ticket. Copy its ETag header for the next two requests.
+GET {{host}}/api/v1/tickets/{{ticketId}}
+Authorization: Bearer {{dana}}
+
+### Unchanged since you last read it: 304, no body
+GET {{host}}/api/v1/tickets/{{ticketId}}
+Authorization: Bearer {{dana}}
+If-None-Match: "paste-etag-here"
+
+### Update only if nobody else changed it (412 if they did)
+PATCH {{host}}/api/v1/tickets/{{ticketId}}
+Authorization: Bearer {{dana}}
+If-Match: "paste-etag-here"
+Content-Type: application/json
+
+{ "priority": "Urgent" }
+
+### Make the store slow, then read a ticket twice: slow, then fast
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 800, "errorRate": 0, "available": true }
+
+### Take the store down. A cached ticket still reads fine; the list doesn't.
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 0, "errorRate": 0, "available": false }
+
+### Back to normal
+POST {{host}}/dev/chaos/reset

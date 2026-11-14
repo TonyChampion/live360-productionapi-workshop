@@ -1,0 +1,40 @@
+# Lab 7: Resilience
+# Watch the response times and status codes, and the lab client's trace panel.
+@host = https://localhost:7001
+@dana = paste-dana-token-here
+
+### A transient blip: the next 2 store calls fail. Before Lab 7: 500. After: 200 (retried).
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 0, "errorRate": 0, "available": true, "failNextCalls": 2 }
+
+###
+GET {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+
+### Every call fails: 503 store-unavailable (before Lab 7: 500)
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 0, "errorRate": 1, "available": true }
+
+### Send this several times: the circuit opens, and failures become instant 503s with Retry-After
+GET {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+
+### Health while the circuit is open: Degraded, still 200
+GET {{host}}/health
+
+### The store hangs: 504 after about 2.5 s (before Lab 7: waits the full 10 s)
+PUT {{host}}/dev/chaos
+Content-Type: application/json
+
+{ "latencyMs": 10000, "errorRate": 0, "available": true }
+
+###
+GET {{host}}/api/v1/tickets
+Authorization: Bearer {{dana}}
+
+### Back to normal (the circuit closes after its break duration)
+POST {{host}}/dev/chaos/reset
