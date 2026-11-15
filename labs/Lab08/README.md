@@ -1,6 +1,6 @@
 # Lab 8: Move the Work, Keep the Contract
 
-**Module 8: Background Processing** | about 45 to 60 minutes
+**Module 8: Background Processing** | about 70 to 80 minutes
 
 Some work doesn't belong inside a request. Closing 20 tickets against a store that answers in 800 ms takes 48 seconds: three store calls each, ten times Lab 7's request budget. In this lab you'll let slices react to each other through events, accept slow work with **202 Accepted** and a place to check on it, do the work in a background worker that retries and dead-letters, and run work on a timer.
 

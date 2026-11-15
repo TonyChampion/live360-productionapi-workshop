@@ -1,6 +1,6 @@
 # Lab 3: Who's Calling, and What Can They Do?
 
-**Module 3: Authentication and Authorization** | about 45 to 60 minutes
+**Module 3: Authentication and Authorization** | about 60 to 75 minutes
 
 Right now anyone can read, change, and close any ticket. In this lab you'll add sign-in with JWT bearer tokens, then the rules a support desk actually needs: agents can do anything, and requesters can only see and work with their own tickets. Last, a second way in for callers that aren't people: API keys.
 

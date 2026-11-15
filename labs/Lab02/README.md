@@ -1,6 +1,6 @@
 # Lab 2: Every Failure Has a Shape
 
-**Module 2: Validation and Error Contracts** | about 45 to 60 minutes
+**Module 2: Validation and Error Contracts** | about 60 to 70 minutes
 
 The demo version of an API handles the happy path. A production API designs its failures. In this lab you'll make every failure leave through a designed exit: the right status code, a Problem Details body with a stable type a caller can code against, and a trace ID they can hand to support.
 

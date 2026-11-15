@@ -1,6 +1,6 @@
 # Lab 1: Controllers to Minimal APIs
 
-**Module 1: Minimal APIs and Vertical Slices** | about 45 to 60 minutes
+**Module 1: Minimal APIs and Vertical Slices** | about 60 to 70 minutes
 
 You start with the API most teams have today: controllers calling a service layer calling a store. You'll migrate it to minimal APIs organized as vertical slices, one feature at a time, while the tests prove callers can't tell anything changed. Then you'll add what the controller version never had: real request and response contracts, versioning, and an OpenAPI document.
 

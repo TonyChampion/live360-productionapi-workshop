@@ -1,6 +1,6 @@
 # Lab 6: Make It Report on Itself
 
-**Module 6: Observability** | about 45 to 60 minutes
+**Module 6: Observability** | about 50 to 60 minutes
 
 When something goes wrong in production, you have three questions: **is it working** (health), **where did the time go** (traces), and **what happened** (logs). The demo version answers none of them: `/health` says "Healthy" while the store is down, nothing records what a request did, and the logs are sentences you can only grep. In this lab the API learns to report on itself.
 

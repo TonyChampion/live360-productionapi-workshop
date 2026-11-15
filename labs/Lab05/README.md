@@ -1,6 +1,6 @@
 # Lab 5: Make It Fast, Keep It Right
 
-**Module 5: Performance** | about 45 to 60 minutes
+**Module 5: Performance** | about 60 to 70 minutes
 
 The demo version returns every ticket on every list call and reads the store on every request. That's fine with 10 tickets and a store that answers in a microsecond. In this lab the chaos panel finally earns its keep: you'll make the store slow, then make the API fast anyway, without serving anyone stale data or someone else's data.
 

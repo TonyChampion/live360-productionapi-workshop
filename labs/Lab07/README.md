@@ -1,6 +1,6 @@
 # Lab 7: Fail on Purpose
 
-**Module 7: Resilience** | about 45 to 60 minutes
+**Module 7: Resilience** | about 50 to 60 minutes
 
 Every dependency fails eventually. The demo version handles that by waiting: a store that hangs for 10 seconds holds the request (and a server thread) for 10 seconds, a single blip becomes a 500, and an outage means every caller waits out every failure. In this lab you'll design how the API fails: within a known time budget, retrying only what's safe, and backing off a store that's down instead of piling on.
 

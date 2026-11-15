@@ -1,6 +1,6 @@
 # Bonus Lab A: Safe to Retry
 
-**Bonus A: Idempotency** | about 45 minutes
+**Bonus A: Idempotency** | about 60 minutes
 
 Lab 7 left a hole on purpose: a write that timed out **may have happened**, so the API never retries one. The caller is stuck in the same spot. Their `POST /tickets` timed out, or the Wi-Fi dropped before the 201 arrived. Did the ticket get created? If they retry and it did, there are two tickets. If they don't and it didn't, there are none.
 

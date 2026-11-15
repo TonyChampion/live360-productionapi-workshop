@@ -1,6 +1,6 @@
 # Bonus Lab B: Tell Other Systems
 
-**Bonus B: Webhooks** | about 45 minutes
+**Bonus B: Webhooks** | about 60 minutes
 
 So far, everyone who wants to know about a ticket has to ask: poll `GET /tickets/{id}`, or poll Lab 8's job resource. A customer whose CRM should update when a ticket closes would poll every ticket, forever. **Webhooks** turn that around: the customer gives you a URL once, and you call it when something happens.
 

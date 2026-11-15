@@ -1,6 +1,6 @@
 # Lab 4: Abuse Surfaces
 
-**Module 4: Protecting the API** | about 45 to 60 minutes
+**Module 4: Protecting the API** | about 30 to 35 minutes
 
 Authentication tells you who's calling. It doesn't stop a signed-in user, or a service with an API key, from creating ten thousand tickets in a minute, and it says nothing about what a browser should do with your responses. In this lab you'll close those gaps: rate limiting, security headers, and CORS. The talk-it-over section covers keeping Lab 3's API keys safe in production.
 
